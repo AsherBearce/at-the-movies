@@ -13,14 +13,12 @@ import javax.annotation.PostConstruct;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
-import javax.persistence.ManyToOne;
 import javax.persistence.OrderBy;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -34,16 +32,16 @@ import org.springframework.stereotype.Component;
 
 @Entity
 @Component
-@JsonIgnoreProperties(value = {"id", "created", "updated", "href", "actors"}, allowGetters = true,
+@JsonIgnoreProperties(value = {"id", "created", "updated", "href", "movies"}, allowGetters = true,
     ignoreUnknown = true)
-public class Movie implements FlatMovie {
+public class Actor implements FlatActor {
 
   private static EntityLinks entityLinks;
 
   @Id
   @GeneratedValue(generator = "uuid2")
   @GenericGenerator(name = "uuid2", strategy = "uuid2")
-  @Column(name = "movie_id", columnDefinition = "CHAR(16) FOR BIT DATA",
+  @Column(name = "actor_id", columnDefinition = "CHAR(16) FOR BIT DATA",
       nullable = false, updatable = false)
   private UUID id;
 
@@ -59,20 +57,17 @@ public class Movie implements FlatMovie {
   @Column(nullable = false)
   private Date updated;
 
-  @Column(nullable = false)
-  private String title;
+  @NonNull
+  @Column(length = 1024, nullable = false, unique = true)
+  private String name;
 
-  private String screenwriter;
-
-  @ManyToOne(fetch = FetchType.EAGER)
-  @JoinColumn(name = "genre_id")
-  private Genre genre;
-
-  @ManyToMany(fetch = FetchType.LAZY, mappedBy = "movies",
+  @ManyToMany(fetch = FetchType.LAZY,
       cascade = {CascadeType.DETACH, CascadeType.MERGE, CascadeType.PERSIST, CascadeType.REFRESH})
-  @OrderBy("name ASC")
-  @JsonSerialize(contentAs = FlatActor.class)
-  private List<Actor> actors = new LinkedList<>();
+  @JoinTable(joinColumns = @JoinColumn(name = "actor_id"),
+      inverseJoinColumns = @JoinColumn(name = "movie_id"))
+  @OrderBy("title asc")
+  @JsonSerialize(contentAs = FlatMovie.class)
+  private List<Movie> movies = new LinkedList<>();
 
   @Override
   public UUID getId() {
@@ -90,39 +85,21 @@ public class Movie implements FlatMovie {
   }
 
   @Override
-  public String getTitle() {
-    return title;
+  public String getName() {
+    return name;
   }
 
-  public void setTitle(String title) {
-    this.title = title;
+  public void setName(String name) {
+    this.name = name;
   }
 
-  @Override
-  public String getScreenwriter() {
-    return screenwriter;
-  }
-
-  public void setScreenwriter(String screenwriter) {
-    this.screenwriter = screenwriter;
-  }
-
-  @Override
-  public Genre getGenre() {
-    return genre;
-  }
-
-  public void setGenre(Genre genre) {
-    this.genre = genre;
+  public List<Movie> getMovies() {
+    return movies;
   }
 
   @Override
   public URI getHref() {
-    return entityLinks.linkForSingleResource(Movie.class, id).toUri();
-  }
-
-  public List<Actor> getActors() {
-    return actors;
+    return entityLinks.linkForSingleResource(Actor.class, id).toUri();
   }
 
   @PostConstruct
@@ -132,7 +109,7 @@ public class Movie implements FlatMovie {
 
   @Autowired
   private void setEntityLinks(EntityLinks entityLinks) {
-    Movie.entityLinks = entityLinks;
+    Actor.entityLinks = entityLinks;
   }
 
 }
